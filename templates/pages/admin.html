@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% block title %}Админ. панель — Фитомаркет{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1>Административная панель</h1>
+
+    <!-- Вкладки -->
+    <div class="tab admin-tab">
+      <button
+          class="tablinks {% if active_tab == 'orders' %}active{% endif %}"
+          onclick="openAdminTab(event, 'tab-orders')">
+        Заказы
+      </button>
+      <button
+          class="tablinks {% if active_tab == 'categories' %}active{% endif %}"
+          onclick="openAdminTab(event, 'tab-categories')">
+        Категории
+      </button>
+      <button
+          class="tablinks {% if active_tab == 'products' %}active{% endif %}"
+          onclick="openAdminTab(event, 'tab-products')">
+        Продукты
+      </button>
+      <button
+          class="tablinks {% if active_tab == 'users' %}active{% endif %}"
+          onclick="openAdminTab(event, 'tab-users')">
+        Пользователи
+      </button>
+      <button
+          class="tablinks {% if active_tab == 'reviews' %}active{% endif %}"
+          onclick="openAdminTab(event, 'tab-reviews')">
+        Отзывы
+      </button>
+    </div>
+
+    <!-- Вкладка: Заказы -->
+    <div id="tab-orders"
+         class="tabcontent"
+         style="display:{% if active_tab == 'orders' %}block{% else %}none{% endif %};">
+      <h2>Заказы</h2>
+      {% if orders %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Покупатель</th>
+              <th>Дата</th>
+              <th>Статус</th>
+              <th>Сумма</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for o in orders %}
+            <tr>
+              <td>{{ o.id }}</td>
+              <td>{{ o.full_name }}</td>
+              <td>{{ o.order_date }}</td>
+              <td>
+                <form action="{{ url_for('admin_update_order_status', order_id=o.id) }}" method="post" class="inline-form">
+                  <select name="status" onchange="this.form.submit()">
+                    <option value="new" {% if o.status == 'new' %}selected{% endif %}>Новый</option>
+                    <option value="processing" {% if o.status == 'processing' %}selected{% endif %}>В обработке</option>
+                    <option value="completed" {% if o.status == 'completed' %}selected{% endif %}>Завершён</option>
+                    <option value="cancelled" {% if o.status == 'cancelled' %}selected{% endif %}>Отменён</option>
+                  </select>
+                </form>
+              </td>
+              <td>{{ '%.2f'|format(o.total_amount) }} ₽</td>
+              <td>
+                <form action="{{ url_for('admin_delete_order', order_id=o.id) }}" method="post" class="inline-form">
+                  <button type="submit" class="link-button link-danger">Удалить</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>Заказов пока нет.</p>
+      {% endif %}
+    </div>
+
+    <!-- Вкладка: Категории -->
+    <div id="tab-categories"
+         class="tabcontent"
+         style="display:{% if active_tab == 'categories' %}block{% else %}none{% endif %};">
+      <h2>Категории</h2>
+
+      <h3>Добавить категорию</h3>
+      <form action="{{ url_for('admin_add_category') }}" method="post" class="admin-form">
+        <input type="text" name="name" placeholder="Название категории" required>
+        <textarea name="description" rows="2" placeholder="Описание (необязательно)"></textarea>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </form>
+
+      <h3>Список категорий</h3>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Описание</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in categories %}
+          <tr>
+            <td>{{ c.id }}</td>
+            <td>
+              <form action="{{ url_for('admin_edit_category', category_id=c.id) }}" method="post">
+                <input type="text" name="name" value="{{ c.name }}" required>
+                <textarea name="description" rows="1">{{ c.description or '' }}</textarea>
+                <button type="submit" class="btn btn-outline small-btn">Сохранить</button>
+              </form>
+            </td>
+            <td>{{ c.description }}</td>
+            <td>
+              <form action="{{ url_for('admin_delete_category_route', category_id=c.id) }}" method="post" class="inline-form">
+                <button type="submit" class="link-button link-danger">Удалить</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Вкладка: Продукты -->
+    <div id="tab-products"
+         class="tabcontent"
+         style="display:{% if active_tab == 'products' %}block{% else %}none{% endif %};">
+      <h2>Продукты</h2>
+
+      <button class="btn btn-primary" id="openProductModalAdd">Добавить продукт</button>
+
+      <table class="admin-table" style="margin-top: 10px;">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Категория</th>
+            <th>Цена</th>
+            <th>Остаток</th>
+            <th>Активен</th>
+            <th>Рейтинг</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in products %}
+          <tr
+            data-product-id="{{ p.id }}"
+            data-product-name="{{ p.name }}"
+            data-product-category="{{ p.category_id }}"
+            data-product-description="{{ p.description | default('', true) }}"
+            data-product-price="{{ '%.2f'|format(p.price) }}"
+            data-product-stock="{{ p.stock }}"
+            data-product-is-active="{{ p.is_active }}"
+            data-product-image="{{ p.image_url | default('', true) }}"
+          >
+            <td>{{ p.id }}</td>
+            <td>{{ p.name }}</td>
+            <td>{{ p.category_name }}</td>
+            <td>{{ '%.2f'|format(p.price) }} ₽</td>
+            <td>{{ p.stock }}</td>
+            <td>{{ 'Да' if p.is_active else 'Нет' }}</td>
+            <td>
+              {% if p.rating_avg %}
+                {{ '%.1f'|format(p.rating_avg) }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn btn-outline small-btn openProductModalEdit">Открыть</button>
+              <form action="{{ url_for('admin_delete_product_route', product_id=p.id) }}" method="post" class="inline-form">
+                <button type="submit" class="link-button link-danger">Удалить</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Вкладка: Пользователи -->
+    <div id="tab-users"
+         class="tabcontent"
+         style="display:{% if active_tab == 'users' %}block{% else %}none{% endif %};">
+      <h2>Пользователи</h2>
+
+      <h3>Добавить пользователя</h3>
+      <form action="{{ url_for('admin_add_user') }}" method="post" class="admin-form">
+        <input type="text" name="full_name" placeholder="ФИО" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Пароль" required>
+        <input type="text" name="phone" placeholder="Телефон">
+        <input type="text" name="city" placeholder="Город">
+        <input type="text" name="address" placeholder="Адрес">
+        <select name="role">
+          <option value="customer">Покупатель</option>
+          <option value="admin">Администратор</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </form>
+
+      <h3>Список пользователей</h3>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>ФИО / Email</th>
+            <th>Телефон / Город</th>
+            <th>Роль</th>
+            <th>Создан</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td>
+              <form action="{{ url_for('admin_edit_user', user_id=u.id) }}" method="post">
+                <input type="text" name="full_name" value="{{ u.full_name }}" required>
+                <input type="email" name="email" value="{{ u.email }}" required>
+                <input type="text" name="phone" value="{{ u.phone or '' }}" placeholder="Телефон">
+                <input type="text" name="city" value="{{ u.city or '' }}" placeholder="Город">
+                <input type="text" name="address" placeholder="Адрес (не редактируется здесь)">
+                <select name="role">
+                  <option value="customer" {% if u.role == 'customer' %}selected{% endif %}>Покупатель</option>
+                  <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Администратор</option>
+                </select>
+                <button type="submit" class="btn btn-outline small-btn">Сохранить</button>
+              </form>
+            </td>
+            <td>{{ u.phone or '-' }} / {{ u.city or '-' }}</td>
+            <td>{{ 'Админ' if u.role == 'admin' else 'Покупатель' }}</td>
+            <td>{{ u.created_at }}</td>
+            <td>
+              <form action="{{ url_for('admin_delete_user_route', user_id=u.id) }}" method="post" class="inline-form">
+                <button type="submit" class="link-button link-danger">Удалить</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Вкладка: Отзывы -->
+    <div id="tab-reviews"
+         class="tabcontent"
+         style="display:{% if active_tab == 'reviews' %}block{% else %}none{% endif %};">
+      <h2>Отзывы</h2>
+      {% if reviews %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Товар</th>
+              <th>Пользователь</th>
+              <th>Оценка</th>
+              <th>Комментарий</th>
+              <th>Дата</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for r in reviews %}
+            <tr>
+              <td>{{ r.id }}</td>
+              <td>{{ r.product_name }}</td>
+              <td>{{ r.full_name }}</td>
+              <td>{{ r.rating }}</td>
+              <td>{{ r.comment or '' }}</td>
+              <td>{{ r.created_at }}</td>
+              <td>
+                <form action="{{ url_for('admin_delete_review_route', review_id=r.id) }}" method="post" class="inline-form">
+                  <button type="submit" class="link-button link-danger">Удалить</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>Отзывов пока нет.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Модальное окно для добавления/редактирования продукта -->
+<div id="productModal" class="modal-overlay">
+  <div class="modal-window">
+    <div class="modal-header">
+      <h2 id="productModalTitle">Продукт</h2>
+      <button class="modal-close" id="productModalClose">&times;</button>
+    </div>
+    <form action="{{ url_for('admin_save_product') }}" method="post" enctype="multipart/form-data" class="admin-form">
+      <input type="hidden" name="product_id" id="product_id">
+      <input type="hidden" name="existing_image_url" id="existing_image_url">
+
+      <label>Название *</label>
+      <input type="text" name="name" id="product_name" required>
+
+      <label>Категория *</label>
+      <select name="category_id" id="product_category_id" required>
+        {% for c in categories %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Описание</label>
+      <textarea name="description" id="product_description" rows="3"></textarea>
+
+      <label>Цена *</label>
+      <input type="number" step="0.01" name="price" id="product_price" required>
+
+      <label>Остаток *</label>
+      <input type="number" name="stock" id="product_stock" required>
+
+      <label>
+        <input type="checkbox" name="is_active" id="product_is_active">
+        Активен (отображается в каталоге)
+      </label>
+
+      <label>Картинка</label>
+      <div class="product-image-admin">
+        <img id="product_image_preview" src="" alt="Предпросмотр" style="max-width: 100%; max-height: 150px; display:none;">
+      </div>
+      <input type="file" name="image_file" accept="image/*">
+
+      <button type="submit" class="btn btn-primary full-width" style="margin-top:10px;">Сохранить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

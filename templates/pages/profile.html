@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Профиль — Фитомаркет{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1>Профиль пользователя</h1>
+        <div class="profile-card">
+            <p><strong>ФИО:</strong> {{ user.full_name }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Телефон:</strong> {{ user.phone or '-' }}</p>
+            <p><strong>Город:</strong> {{ user.city or '-' }}</p>
+            <p><strong>Адрес:</strong> {{ user.address or '-' }}</p>
+            <p><strong>Роль:</strong> {{ 'Администратор' if user.role == 'admin' else 'Покупатель' }}</p>
+        </div>
+
+        <h2 style="margin-top: 20px;">Мои заказы</h2>
+        {% if orders %}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>№ заказа</th>
+                        <th>Дата</th>
+                        <th>Статус</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                        <tr>
+                            <td>{{ o.id }}</td>
+                            <td>{{ o.order_date }}</td>
+                            <td>
+                                {% if o.status == 'new' %}
+                                    Новый
+                                {% elif o.status == 'processing' %}
+                                    В обработке
+                                {% elif o.status == 'completed' %}
+                                    Завершён
+                                {% elif o.status == 'cancelled' %}
+                                    Отменён
+                                {% else %}
+                                    {{ o.status }}
+                                {% endif %}
+                            </td>
+                            <td>{{ '%.2f'|format(o.total_amount) }} ₽</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>У вас пока нет заказов.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

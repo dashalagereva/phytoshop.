@@ -1,0 +1,30 @@
+# Виртуальное окружение
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads (если не хочешь загружать картинки)
+static/uploads/
+
+# Конфиги
+.env
+config.py
+*.local
+
+# Логи
+*.log

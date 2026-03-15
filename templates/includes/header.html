@@ -1,0 +1,27 @@
+<!-- templates/includes/header.html -->
+<header class="site-header">
+    <div class="container header-inner">
+        <div class="header-left">
+            <a href="{{ url_for('index') }}" class="logo">ФитоЛавка</a>
+            <nav class="main-nav">
+                <a href="{{ url_for('catalog') }}">Каталог</a>
+                <a href="{{ url_for('delivery') }}">Доставка</a>
+            </nav>
+        </div>
+
+        <div class="header-right">
+            {% if user %}
+                <a href="{{ url_for('cart') }}" class="header-link">Корзина</a>
+                {% if user.role == 'admin' %}
+                    <a href="{{ url_for('admin') }}" class="header-link">Админ. панель</a>
+                {% endif %}
+                <a href="{{ url_for('profile') }}" class="header-link header-user">
+                    {{ user.full_name }}
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Выйти</a>
+            {% else %}
+                <button class="btn btn-primary" id="openAuthModalBtn">Войти</button>
+            {% endif %}
+        </div>
+    </div>
+</header>

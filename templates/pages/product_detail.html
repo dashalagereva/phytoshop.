@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} — Фитомаркет{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container product-detail">
+        <div class="product-detail-main">
+            <div class="product-detail-image">
+                {% if product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                {% else %}
+                    <div class="product-image-placeholder">Нет фото</div>
+                {% endif %}
+            </div>
+            <div class="product-detail-info">
+                <h1>{{ product.name }}</h1>
+                <p class="product-category">{{ product.category_name }}</p>
+                <div class="product-price">{{ '%.2f'|format(product.price) }} ₽</div>
+                <div class="product-rating">
+                    {% if product.rating_avg %}
+                        ⭐ {{ '%.1f'|format(product.rating_avg) }}
+                    {% else %}
+                        Нет оценок
+                    {% endif %}
+                </div>
+                <p class="product-description">{{ product.description }}</p>
+
+                {% if user %}
+                    <a href="{{ url_for('add_to_cart_route', product_id=product.id) }}" class="btn btn-primary">
+                        Добавить в корзину
+                    </a>
+                {% else %}
+                    <button class="btn btn-primary" id="openAuthFromProduct">Войти, чтобы купить</button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="product-reviews">
+            <h2>Отзывы</h2>
+
+            {% if user %}
+                <form action="{{ url_for('product_detail', product_id=product.id) }}" method="post" class="review-form">
+                    <label>Оценка</label>
+                    <select name="rating" required>
+                        <option value="">Выберите</option>
+                        <option value="5">5 — Отлично</option>
+                        <option value="4">4 — Хорошо</option>
+                        <option value="3">3 — Нормально</option>
+                        <option value="2">2 — Плохо</option>
+                        <option value="1">1 — Ужасно</option>
+                    </select>
+
+                    <label>Комментарий</label>
+                    <textarea name="comment" rows="3"></textarea>
+
+                    <button type="submit" class="btn btn-outline">Оставить отзыв</button>
+                </form>
+            {% else %}
+                <p>Чтобы оставить отзыв, <button class="link-button" id="openAuthFromReview">войдите в систему</button>.</p>
+            {% endif %}
+
+            {% if reviews %}
+                <ul class="reviews-list">
+                    {% for r in reviews %}
+                        <li class="review-item">
+                            <div class="review-header">
+                                <strong>{{ r.full_name }}</strong>
+                                <span>Оценка: {{ r.rating }}/5</span>
+                            </div>
+                            <div class="review-comment">{{ r.comment or 'Без комментария' }}</div>
+                            <div class="review-date">{{ r.created_at }}</div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Пока нет отзывов. Будьте первым!</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
